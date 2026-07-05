@@ -48,14 +48,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Enter a repository as owner/name." }, { status: 400 });
   }
 
+  // Only send inputs that are set. Passing an input the target workflow does
+  // not declare makes GitHub reject the dispatch with a 422, so keep it lean.
   const inputs: Record<string, string> = {
     repository,
-    ref: String(body.ref || ""),
     production: body.production === false ? "false" : "true",
-    root_directory: String(body.rootDirectory || ""),
-    install_command: String(body.installCommand || ""),
-    build_command: String(body.buildCommand || ""),
   };
+  const optional: Record<string, unknown> = {
+    ref: body.ref,
+    root_directory: body.rootDirectory,
+    install_command: body.installCommand,
+    build_command: body.buildCommand,
+  };
+  for (const [key, value] of Object.entries(optional)) {
+    const v = String(value ?? "").trim();
+    if (v) inputs[key] = v;
+  }
 
   const dispatchedAt = Date.now();
 
